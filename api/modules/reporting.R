@@ -6,13 +6,15 @@ box::use(
   purrr[...],
   rlang[...],
   stringr[...],
-  forcats[...]
+  forcats[...],
+  stats[qnorm, qt]
 )
 # styler: on
 
 #' @export
 get_ma_table <- function(
-    data_ma, ma_res, label_overall = "Overall", exponentiate = FALSE, ...) {
+    data_ma, ma_res, use_t = FALSE,
+    label_overall = "Overall", exponentiate = FALSE, ...) {
   data_ma <- data_ma |>
     mutate(suffix = replace_na(as.character(suffix), "")) |>
     mutate(study = as_factor(
@@ -27,12 +29,12 @@ get_ma_table <- function(
   ma_res <- ma_res |>
     mutate(study = label_overall)
 
-  if (all(c("t_n", "c_n") %in% names(data_ma))) {
+  if (use_t & all(c("t_n", "c_n") %in% names(data_ma))) {
     data_ma <- data_ma |>
       mutate(z = if_else(
         !is.na(t_n) & !is.na(c_n), qt(p = 0.975, df = t_n + c_n - 2), z
       ))
-  } else if ("t_n" %in% names(data_ma)) {
+  } else if (use_t & "t_n" %in% names(data_ma)) {
     data_ma <- data_ma |>
       mutate(z = if_else(
         !is.na(t_n), qt(p = 0.975, df = t_n - 1), z

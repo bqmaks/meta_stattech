@@ -8,7 +8,8 @@ box::use(
   rlang[...],
   stringr[...],
   forcats[...],
-  ggplot2[...]
+  ggplot2[...],
+  stats[qnorm, qt, predict]
 )
 # styler: on
 
@@ -211,19 +212,20 @@ forest_plot_main <- function(
 
 #' @export
 plot_metareg <- function(
-    data_ma, method = "DL", exponentiate = FALSE, back_transform = FALSE,
+    data_ma, method = "DL", use_t = FALSE,
+    exponentiate = FALSE, back_transform = FALSE,
     label_est = "GEN [95% CI]", label_covar = "covariate",
     ...) {
   fit <- rma(yi, vi, mods = ~covar, data = data_ma, method = method)
 
   data_ma <- data_ma |> mutate(z = qnorm(0.975))
 
-  if (all(c("t_n", "c_n") %in% names(data_ma))) {
+  if (use_t & all(c("t_n", "c_n") %in% names(data_ma))) {
     data_ma <- data_ma |>
       mutate(z = if_else(
         !is.na(t_n) & !is.na(c_n), qt(p = 0.975, df = t_n + c_n - 2), z
       ))
-  } else if ("t_n" %in% names(data_ma)) {
+  } else if (use_t & "t_n" %in% names(data_ma)) {
     data_ma <- data_ma |>
       mutate(z = if_else(
         !is.na(t_n), qt(p = 0.975, df = t_n - 1), z
@@ -234,6 +236,7 @@ plot_metareg <- function(
     pred = yi, ci.lb = pred - (z * sqrt(vi)), ci.ub = pred + (z * sqrt(vi)),
     weight = 1 / vi
   )
+
   covar <- seq(
     min(data_ma$covar, na.rm = TRUE),
     max(data_ma$covar, na.rm = TRUE),
@@ -250,6 +253,10 @@ plot_metareg <- function(
 
   if (exponentiate) {
     nd <- nd |>
+      mutate(across(
+        c(pred, ci.lb, ci.ub), \(x) exp(x)
+      ))
+    data_ma <- data_ma |>
       mutate(across(
         c(pred, ci.lb, ci.ub), \(x) exp(x)
       ))
