@@ -1,0 +1,10 @@
+author,year,suffix,t_n,t_mean,t_sd,c_n,c_mean,c_sd
+Edinburgh,1999,,155,55,47,156,75,64
+Orpington,1988,a,31,27,7,32,29,4
+Orpington,1992,b,75,64,17,71,119,29
+Orpington,1992,c,18,66,20,18,137,48
+Montreal,2005,a,8,14,8,13,18,11
+Montreal,2005,b,57,19,7,52,18,4
+Newcastle,2000,,34,52,45,33,41,34
+Umea,1997,,110,21,16,183,31,27
+Uppsala,1997,,60,30,27,52,23,20
