@@ -10,9 +10,12 @@ box::use(
   purrr[...],
   rlang[...],
   stringr[...],
-  forcats[...]
+  forcats[...],
+  stats[...]
 )
 # styler: on
+
+# anova <- anova.rma()
 
 #' @export
 compute_I_squared <- function(data_ma, method = "EE", ...) {
@@ -70,7 +73,7 @@ egger_test <- function(data_ma, ...) {
 
 #' @export
 perform_generic_ma <- function(
-    data_ma, measure = "OR", method = "DL", ...) {
+    data_ma, measure = "GEN", method = "DL", ...) {
   methods <- c(
     "EE", "DL", "HE", "HS", "HSk", "SJ", "ML",
     "REML", "EB", "PM", "GENQ", "PMM", "GENQM"
@@ -85,7 +88,7 @@ perform_generic_ma <- function(
     nest(data = -c(group)) |>
     mutate(
       fit = map(
-        data, \(d) rma(yi, vi, data = d, method = method)
+        data, \(d) rma(yi, vi, data = d, measure = measure, method = method)
       ),
       pred = map(fit, \(d) predict.rma(d))
     ) |>
@@ -120,24 +123,24 @@ perform_generic_ma <- function(
 }
 
 #' @export
-perform_peto_ma <- function(data, measure = "OR", ...) {
+perform_peto_ma <- function(data_ma, measure = "OR", ...) {
   measure_options <- c("OR")
 
-  columns <- c(
-    "trial" = NA_integer_, "author" = NA_character_,
-    "year" = NA_integer_, "suffix" = NA_character_,
-    "group" = NA_character_, "covar" = NA_real_,
-    "t_pos" = NA_integer_, "t_total" = NA_integer_,
-    "c_pos" = NA_integer_, "c_total" = NA_integer_
-  )
+  # columns <- c(
+  #   "trial" = NA_integer_, "author" = NA_character_,
+  #   "year" = NA_integer_, "suffix" = NA_character_,
+  #   "group" = NA_character_, "covar" = NA_real_,
+  #   "t_pos" = NA_integer_, "t_total" = NA_integer_,
+  #   "c_pos" = NA_integer_, "c_total" = NA_integer_
+  # )
 
-  data <- add_column(data, !!!columns[
-    setdiff(names(columns), names(data))
-  ])
+  # data <- add_column(data, !!!columns[
+  #   setdiff(names(columns), names(data))
+  # ])
 
-  priority <- c("t_pos", "t_total", "c_pos", "c_total")
+  # priority <- c("t_pos", "t_total", "c_pos", "c_total")
 
-  data <- data |> drop_na(all_of(priority))
+  # data <- data |> drop_na(all_of(priority))
 
   meta_res <- bind_rows(
     data_ma |> mutate(group = "_Overall"),
@@ -157,7 +160,7 @@ perform_peto_ma <- function(data, measure = "OR", ...) {
     ) |>
     transmute(
       measure = measure,
-      method = "Peto",
+      method = "PETO",
       group = group,
       est = map_dbl(fit, \(x) x[["beta"]][1]),
       se = map_dbl(fit, \(x) x[["se"]]),
@@ -176,31 +179,26 @@ perform_peto_ma <- function(data, measure = "OR", ...) {
 }
 
 #' @export
-perform_mh_ma <- function(data, measure = "OR", ...) {
-  measure_options <- c("OR", "RR", "RD", "IRR")
-
-  #   fit <- rma.mh(
-  #     ai = t_pos, bi = t_total - t_pos,
-  #     ci = c_pos, di = c_total - c_pos,
-  #     data = data, add = 1 / 2, to = "only0",
-  #     drop00 = TRUE, correct = TRUE
-  #   )
+perform_mh_ma <- function(data_ma, measure, ...) {
+  measure_options <- c("OR", "RR", "RD", "IRR", "IRD")
 
   if (measure %in% c("OR", "RR", "RD")) {
-    columns <- c(
-      "trial" = NA_integer_, "author" = NA_character_,
-      "year" = NA_integer_, "suffix" = NA_character_,
-      "group" = NA_character_, "covar" = NA_real_,
-      "t_pos" = NA_integer_, "t_total" = NA_integer_,
-      "c_pos" = NA_integer_, "c_total" = NA_integer_
-    )
+    # columns <- c(
+    #   "trial" = NA_integer_, "author" = NA_character_,
+    #   "year" = NA_integer_, "suffix" = NA_character_,
+    #   "group" = NA_character_, "covar" = NA_real_,
+    #   "t_pos" = NA_integer_, "t_total" = NA_integer_,
+    #   "c_pos" = NA_integer_, "c_total" = NA_integer_
+    # )
 
-    data <- add_column(data, !!!columns[
-      setdiff(names(columns), names(data))
-    ])
+    # data <- add_column(data, !!!columns[
+    #   setdiff(names(columns), names(data))
+    # ])
 
-    priority <- c("t_pos", "t_total", "c_pos", "c_total")
-    data <- data |> drop_na(all_of(priority))
+    # priority <- c("t_pos", "t_total", "c_pos", "c_total")
+
+    # data <- data |> drop_na(all_of(priority))
+
     meta_res <- bind_rows(
       data_ma |> mutate(group = "_Overall"),
       data_ma |> arrange(group) |> drop_na(group)
@@ -212,26 +210,28 @@ perform_mh_ma <- function(data, measure = "OR", ...) {
           data, \(d) rma.mh(
             ai = t_pos, bi = t_total - t_pos,
             ci = c_pos, di = c_total - c_pos,
-            data = d, add = 1 / 2, to = "only0",
+            data = d, measure = measure, add = 1 / 2, to = "only0",
             drop00 = TRUE, correct = TRUE
           )
         )
       )
   } else {
-    columns <- c(
-      "trial" = NA_integer_, "author" = NA_character_,
-      "year" = NA_integer_, "suffix" = NA_character_,
-      "group" = NA_character_, "covar" = NA_real_,
-      "t_pos" = NA_integer_, "t_time" = NA_integer_,
-      "c_pos" = NA_integer_, "c_time" = NA_integer_
-    )
+    # columns <- c(
+    #   "trial" = NA_integer_, "author" = NA_character_,
+    #   "year" = NA_integer_, "suffix" = NA_character_,
+    #   "group" = NA_character_, "covar" = NA_real_,
+    #   "t_pos" = NA_integer_, "t_time" = NA_integer_,
+    #   "c_pos" = NA_integer_, "c_time" = NA_integer_
+    # )
 
-    data <- add_column(data, !!!columns[
-      setdiff(names(columns), names(data))
-    ])
+    # data <- add_column(data, !!!columns[
+    #   setdiff(names(columns), names(data))
+    # ])
 
-    priority <- c("t_pos", "t_time", "c_pos", "c_time")
-    data <- data |> drop_na(all_of(priority))
+    # priority <- c("t_pos", "t_time", "c_pos", "c_time")
+
+    # data <- data |> drop_na(all_of(priority))
+
     meta_res <- bind_rows(
       data_ma |> mutate(group = "_Overall"),
       data_ma |> arrange(group) |> drop_na(group)
@@ -243,7 +243,7 @@ perform_mh_ma <- function(data, measure = "OR", ...) {
           data, \(d) rma.mh(
             x1i = t_pos, t1i = t_time,
             x2i = c_pos, t2i = c_time,
-            data = d, add = 1 / 2, to = "only0",
+            data = d, measure = measure, add = 1 / 2, to = "only0",
             drop00 = TRUE
           )
         )
@@ -275,14 +275,12 @@ perform_mh_ma <- function(data, measure = "OR", ...) {
 
 #' @export
 perform_metareg <- function(data_ma, method = "DL", measure = "GEN", ...) {
-  methods <- c(
-    "DL", "HE", "HS", "HSk", "SJ", "ML",
-    "REML", "EB", "PM", "GENQ", "PMM", "GENQM"
-  )
-
   data_ma <- data_ma |> drop_na(covar, yi, vi)
 
-  fit <- rma(yi, vi, mods = ~covar, data = data_ma, method = method)
+  fit <- rma(
+    yi, vi,
+    mods = ~covar, data = data_ma, method = method, measure = measure
+  )
 
   tibble(
     measure = measure,
@@ -319,9 +317,12 @@ perform_anova <- function(data_ma, method = "DL", measure = "GEN", ...) {
     drop_na(group, yi, vi) |>
     mutate(group = fct_drop(group))
 
-  fit <- rma(yi, vi, mods = ~group, data = data_ma, method = method)
+  fit <- rma(
+    yi, vi,
+    mods = ~group, data = data_ma, method = method, measure = measure
+  )
 
-  anova_fit <- anova(fit)
+  anova_fit <- stats::anova(fit)
 
   tibble(
     measure = measure,
@@ -348,11 +349,14 @@ perform_pairwise_comp <- function(data_ma, method = "DL", measure = "GEN", ...) 
     drop_na(group, yi, vi) |>
     mutate(group = fct_drop(group))
 
-  fit_comp <- rma(yi, vi, mods = ~ 0 + group, data = data_ma, method = method)
+  fit_comp <- rma(
+    yi, vi,
+    mods = ~ 0 + group, data = data_ma, method = method, measure = measure
+  )
 
   cont_mat <- contrMat(n = table(data_ma$group), type = "Tukey")
 
-  comp <- anova(fit_comp, X = cont_mat)
+  comp <- stats::anova(fit_comp, X = cont_mat)
 
   tibble(
     measure = measure,

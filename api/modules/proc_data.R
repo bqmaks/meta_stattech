@@ -14,8 +14,8 @@ box::use(
 
 #' @export
 make_data_2means <- function(
-    data, measure = "MD", skew_test = TRUE, ...) {
-  measure_options <- c("MD", "SMD", "SMDH", "SMD1")
+    data, measure = "MD", skew_test = FALSE, ...) {
+  measure_options <- c("MD", "SMD")
 
   columns <- c(
     "trial" = NA_integer_, "author" = NA_character_,
@@ -129,7 +129,7 @@ make_data_2means <- function(
 }
 
 #' @export
-make_data_1mean <- function(data, measure = "MEAN", skew_test = TRUE, ...) {
+make_data_1mean <- function(data, measure = "MEAN", skew_test = FALSE, ...) {
   measure_options <- c("MEAN")
 
   columns <- c(
@@ -227,8 +227,7 @@ make_data_generic_absolute <- function(data, measure = "CORR", ...) {
     "year" = NA_integer_, "suffix" = NA_character_,
     "group" = NA_character_, "covar" = NA_real_,
     "m" = NA_real_, "se" = NA_real_,
-    "lcl" = NA_real_, "ucl" = NA_real_,
-    "n" = NA_integer_
+    "lcl" = NA_real_, "ucl" = NA_real_
   )
 
   data <- add_column(data, !!!columns[
@@ -288,9 +287,8 @@ make_data_generic_relative <- function(data, measure = "HR", ...) {
     "trial" = NA_integer_, "author" = NA_character_,
     "year" = NA_integer_, "suffix" = NA_character_,
     "group" = NA_character_, "covar" = NA_real_,
-    "log_rm" = NA_real_, "log_rm_se" = NA_real_,
-    "rm" = NA_real_, "lcl" = NA_real_, "ucl" = NA_real_,
-    "n" = NA_integer_
+    "log_rm" = NA_real_, "se" = NA_real_,
+    "rm" = NA_real_, "lcl" = NA_real_, "ucl" = NA_real_
   )
 
   data <- add_column(data, !!!columns[
@@ -298,7 +296,7 @@ make_data_generic_relative <- function(data, measure = "HR", ...) {
   ])
 
   priority <- list(
-    "1st" = c("log_rm", "log_rm_se"),
+    "1st" = c("log_rm", "se"),
     "2nd" = c("rm", "lcl", "ucl")
   )
 
@@ -311,7 +309,7 @@ make_data_generic_relative <- function(data, measure = "HR", ...) {
     data_list[["1st"]] <- data_1 |>
       mutate(
         yi = log_rm,
-        vi = log_rm_se^2
+        vi = se^2
       ) |>
       mutate(idx = 1)
   }
@@ -396,7 +394,7 @@ make_data_1prop <- function(data, measure = "PROP", ...) {
 #' @export
 make_data_2prop_absolute <- function(data, measure = "RD", ...) {
   # AS for the arcsine square root transformed risk difference
-  measure_options <- c("RD", "AS")
+  measure_options <- c("RD")
 
   columns <- c(
     "trial" = NA_integer_, "author" = NA_character_,
@@ -415,7 +413,7 @@ make_data_2prop_absolute <- function(data, measure = "RD", ...) {
   priority <- list(
     "1st" = c("t_pos", "t_total", "c_pos", "c_total"),
     "2nd" = c("m", "se"),
-    "3rd" = c("rm", "lcl", "ucl")
+    "3rd" = c("m", "lcl", "ucl")
   )
 
   data_1 <- data |> drop_na(all_of(priority[["1st"]]))
@@ -469,7 +467,7 @@ make_data_2prop_relative <- function(data, measure = "OR", ...) {
     "group" = NA_character_, "covar" = NA_real_,
     "t_pos" = NA_integer_, "t_total" = NA_integer_,
     "c_pos" = NA_integer_, "c_total" = NA_integer_,
-    "log_rm" = NA_real_, "log_rm_se" = NA_real_,
+    "log_rm" = NA_real_, "se" = NA_real_,
     "rm" = NA_real_, "lcl" = NA_real_, "ucl" = NA_real_
   )
 
@@ -479,7 +477,7 @@ make_data_2prop_relative <- function(data, measure = "OR", ...) {
 
   priority <- list(
     "1st" = c("t_pos", "t_total", "c_pos", "c_total"),
-    "2nd" = c("log_rm", "log_rm_se"),
+    "2nd" = c("log_rm", "se"),
     "3rd" = c("rm", "lcl", "ucl")
   )
 
@@ -503,7 +501,7 @@ make_data_2prop_relative <- function(data, measure = "OR", ...) {
   if (nrow(data_2) > 0) {
     data_list[["2nd"]] <- data_2 |>
       mutate(
-        yi = log_rm, vi = log_rm_se^2
+        yi = log_rm, vi = se^2
       ) |>
       mutate(idx = 2)
   }
@@ -660,7 +658,7 @@ make_data_2ir_relative <- function(data, measure = "IRR", ...) {
     "group" = NA_character_, "covar" = NA_real_,
     "t_pos" = NA_integer_, "t_time" = NA_integer_,
     "c_pos" = NA_integer_, "c_time" = NA_integer_,
-    "log_rm" = NA_real_, "log_rm_se" = NA_real_,
+    "log_rm" = NA_real_, "se" = NA_real_,
     "rm" = NA_real_, "lcl" = NA_real_, "ucl" = NA_real_
   )
 
@@ -670,7 +668,7 @@ make_data_2ir_relative <- function(data, measure = "IRR", ...) {
 
   priority <- list(
     "1st" = c("t_pos", "t_time", "c_pos", "c_time"),
-    "2nd" = c("log_rm", "log_rm_se"),
+    "2nd" = c("log_rm", "se"),
     "3rd" = c("rm", "lcl", "ucl")
   )
 
@@ -694,7 +692,7 @@ make_data_2ir_relative <- function(data, measure = "IRR", ...) {
   if (nrow(data_2) > 0) {
     data_list[["2nd"]] <- data_2 |>
       mutate(
-        yi = log_rm, vi = log_rm_se^2
+        yi = log_rm, vi = se^2
       ) |>
       mutate(idx = 2)
   }

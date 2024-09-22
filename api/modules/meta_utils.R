@@ -27,7 +27,9 @@ generic_methods <- c(
 binary_measures <- c("OR", "RR", "RD", "AS")
 
 #' @export
-relative_measures <- c("OR", "PETO", "RR", "HR", "IRR")
+relative_measures <- c(
+  "HR", "OR", "RR", "IRR"
+)
 
 #' @export
 se_from_ci <- Vectorize(function(q, lcl, ucl) {
@@ -60,7 +62,7 @@ se_prop <- Vectorize(function(pos, total) {
 
 #' @export
 add_mean_sd <- function(
-    data, prefix = "t_", skew_test = TRUE, ...) {
+    data, prefix = "t_", skew_test = FALSE, ...) {
   data <- data |> set_names(
     str_remove(names(data), paste0("^", prefix))
   )

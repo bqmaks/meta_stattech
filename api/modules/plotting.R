@@ -1,5 +1,6 @@
 # styler: off
 box::use(
+  ./meta_utils[...],
   metafor[rma],
   tibble[...],
   tidyr[...],
@@ -91,13 +92,7 @@ generate_diamond <- function(data, label_overall, ...) {
 #' @export
 funnel_plot_overall <- function(
     data_ma, measure,
-    label_y = "Standard error",
-    label_x = NA,
-    ...) {
-  if (is.na(label_x)) {
-    label_x <- measure
-  }
-
+    label_y = "Standard error", label_x = "GEN", ...) {
   fit <- rma(yi, vi, measure = measure, data = data_ma, method = "EE")
   se <- sqrt(max(data_ma$vi))
 
@@ -212,11 +207,23 @@ forest_plot_main <- function(
 
 #' @export
 plot_metareg <- function(
-    data_ma, method = "DL", use_t = FALSE,
+    data_ma, method = "DL", measure = "GEN", use_t = TRUE,
     exponentiate = FALSE, back_transform = FALSE,
     label_est = "GEN [95% CI]", label_covar = "covariate",
     ...) {
-  fit <- rma(yi, vi, mods = ~covar, data = data_ma, method = method)
+  if (exponentiate & (measure %in% relative_measures)) {
+    exponentiate <- TRUE
+  } else {
+    exponentiate <- FALSE
+  }
+  if (use_t & !(measure %in% c("MD", "SMD", "MEAN"))) {
+    use_t <- FALSE
+  }
+
+  fit <- rma(
+    yi, vi,
+    mods = ~covar, data = data_ma, method = method, measure = measure
+  )
 
   data_ma <- data_ma |> mutate(z = qnorm(0.975))
 
@@ -293,7 +300,7 @@ plot_metareg <- function(
       axis.text = element_text(color = "black", size = 12)
     )
 
-  if (back_transform) {
+  if (exponentiate & back_transform) {
     p <- p +
       scale_y_continuous(
         name = label_est, n.breaks = 8, transform = "log10"
